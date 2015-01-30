@@ -1,9 +1,9 @@
 // ConsoleApplication2.cpp : définit le point d'entrée pour l'application console.
 //
-
 #include "stdafx.h"
 
-# define M_PI           3.14159265358979323846 
+# define M_PI           3.14159265358979323846
+
 /******************************************************************************\
 * Copyright (C) 2012-2014 Leap Motion, Inc. All rights reserved.               *
 * Leap Motion proprietary and confidential. Not for distribution.              *
@@ -14,10 +14,14 @@
 
 #include <iostream>
 #include <string.h>
+#include <conio.h> // WINDOWS SPECIFIC //
 #include "Leap.h"
+#include "Ouvriere.h"
 
 using namespace Leap;
 using namespace std;
+
+static char escape = (char)27; // code of the "escape" char
 
 class SampleListener : public Listener {
 public:
@@ -31,8 +35,9 @@ public:
 	virtual void onDeviceChange(const Controller&);
 	virtual void onServiceConnect(const Controller&);
 	virtual void onServiceDisconnect(const Controller&);
-
 private:
+	Ouvriere sender;
+	bool sendingNeeded;
 };
 
 const std::string fingerNames[] = { "Thumb", "Index", "Middle", "Ring", "Pinky" };
@@ -41,6 +46,14 @@ const std::string stateNames[] = { "STATE_INVALID", "STATE_START", "STATE_UPDATE
 
 void SampleListener::onInit(const Controller& controller) {
 	std::cout << "Initialized" << std::endl;
+	wstring ip;
+	cout << "Please enter the phone IP adress :" << endl;
+	wcin >> ip;
+	wcout << "Connecting to " << ip << "..." << endl;
+	sender.initConnection(ip);
+	wcout << "Successfully connected to " << ip << " !" << endl;
+	sender.sendData("Message=Connected to the computer !");
+	sendingNeeded = true;
 }
 
 void SampleListener::onConnect(const Controller& controller) {
@@ -72,11 +85,16 @@ float initHand1x, initHand2x, initHand1y, initHand2y, initHand1z, initHand2z;
 void SampleListener::onFrame(const Controller& controller) {
 	// Get the most recent frame and report some basic information
 	
+	std::stringstream ss_data; // data send to the phone
+
+
 	const Frame frame = controller.frame();
 	//rotationOfHand1 = hand1.rotationAngle(previousFrame);
 	//previousFrame = frame;
 	controller.config().setFloat("Gesture.Swipe.MinVelocity", 100);
-	/*	std::cout << "Frame id: " << frame.id()
+	ss_data << "frame=" << frame.id();
+	ss_data << "&time=" << (double)(frame.timestamp())/1000000.0;
+	/*std::cout << "Frame id: " << frame.id()
 	<< ", timestamp: " << frame.timestamp()
 	<< ", hands: " << frame.hands().count()
 	<< ", fingers: " << frame.fingers().count()
@@ -102,10 +120,10 @@ void SampleListener::onFrame(const Controller& controller) {
 		//	closedRightFist = false;
 		// Get the first hand
 		const Hand hand = *hl;
-		std::string handType = hand.isLeft() ? "Left hand" : "Right hand";
-		//	std::cout << std::string(2, ' ') << handType << ", id: " << hand.id()
-		//	<< ", palm position: " << hand.palmPosition() << std::endl;
-
+		std::string handType = hand.isLeft() ? "Left_hand" : "Right_hand";
+		std::cout << std::string(2, ' ') << handType << ", id: " << hand.id()
+		<< ", palm position: " << hand.palmPosition() << std::endl;
+		ss_data << "&" << handType << "=" << hand.palmPosition().x << "/" << hand.palmPosition().y << "/" << hand.palmPosition().z;
 
 		
 		// Get the hand's normal vector and direction
@@ -265,7 +283,7 @@ void SampleListener::onFrame(const Controller& controller) {
 			
 			hand1 = Hand(hands.leftmost());
 			hand2 = hands.rightmost();
-			//std::cout << "MAISON SELECTIONNEE. Centre des deux mains =   " << (hand1.palmPosition() + hand2.palmPosition()) / 2 << std::endl;
+			std::cout << "MAISON SELECTIONNEE. Centre des deux mains =   " << (hand1.palmPosition() + hand2.palmPosition()) / 2 << std::endl;
 			rotationOfHand1x = hand1.rotationAngle(startFrame, Vector(1, 0, 0));
 			rotationOfHand2x = hand2.rotationAngle(startFrame, Vector(1, 0, 0));
 			rotationOfHand1y = hand1.rotationAngle(startFrame, Vector(0, 1, 0));
@@ -280,7 +298,7 @@ void SampleListener::onFrame(const Controller& controller) {
 
 
 
-			//cout << "rotation 1   " << rotationOfHand1*180/M_PI << "  " << "rotation 2  " << rotationOfHand2*180/M_PI << endl;
+			cout << "rotation 1   " << rotationOfHand1x*180/M_PI << "  " << "rotation 2  " << rotationOfHand2x*180/M_PI << endl;
 			previousFrame = frame;
 			//	std::cout << "Main 1 =   " << hand1.palmPosition() << std::endl;
 			//	std::cout << "Main 2 =   " << hand2.palmPosition() << std::endl;
@@ -413,6 +431,13 @@ void SampleListener::onFrame(const Controller& controller) {
 		/*std::cout << std::endl;*/
 	}
 	Frame prevFrame = frame;
+
+	if (sendingNeeded) {
+		string data;
+		ss_data >> data;
+		sender.sendData(data);
+	}
+	sendingNeeded = !sendingNeeded;
 }
 
 void SampleListener::onFocusGained(const Controller& controller) {
@@ -454,8 +479,12 @@ int main(int argc, char** argv) {
 		controller.setPolicyFlags(Leap::Controller::POLICY_BACKGROUND_FRAMES);
 
 	// Keep this process running until Enter is pressed
-	std::cout << "Press Enter to quit..." << std::endl;
-	std::cin.get();
+	std::cout << "Press Escape to quit..." << std::endl;
+	char key_pressed = 0;
+	while (key_pressed != escape) {
+		key_pressed = _getch();
+		cout << (int)key_pressed << endl;
+	}
 
 	// Remove the sample listener when done
 	controller.removeListener(listener);
