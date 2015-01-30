@@ -302,19 +302,6 @@ void SampleListener::onFrame(const Controller& controller) {
 			else if ((abs(rotationOfHand1x * 180 / M_PI)>30) && (rotationOfHand1x * 180 / M_PI - rotationOfHand2x * 180 / M_PI < 20))
 				cout << "rotation en X !   " << rotationOfHand1x * 180 / M_PI << "  " << "rotation 2  " << rotationOfHand2x * 180 / M_PI << endl;
 
-<<<<<<< HEAD
-	
-=======
-
-
-			cout << "rotation 1   " << rotationOfHand1x*180/M_PI << "  " << "rotation 2  " << rotationOfHand2x*180/M_PI << endl;
-			previousFrame = frame;
-			//	std::cout << "Main 1 =   " << hand1.palmPosition() << std::endl;
-			//	std::cout << "Main 2 =   " << hand2.palmPosition() << std::endl;
-			
-			newDistanceHands = sqrt(pow(hand2.palmPosition().x - hand1.palmPosition().x, 2) + pow(hand2.palmPosition().y - hand1.palmPosition().y, 2) + pow(hand2.palmPosition().z - hand1.palmPosition().z, 2));
-
->>>>>>> 0e8fb1154be48d93acb6d25b8ff5ee7dd8c56539
 		//	std::cout << " Distance  " << distanceHands << std::endl;
 			//cout << "newDistance = " << newDistanceHands << endl;
 			//cout << "Différence  = " << abs(distanceHands - newDistanceHands) << endl;
