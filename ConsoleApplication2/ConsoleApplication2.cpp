@@ -23,6 +23,9 @@ using namespace std;
 
 static char escape = (char)27; // code of the "escape" char
 
+enum GestureState { WaitState = 0, SelectionState, RotationState, TranslationState, Zoom, EndTransformationState };
+int currentState;
+
 class SampleListener : public Listener {
 public:
 	virtual void onInit(const Controller&);
@@ -54,6 +57,7 @@ void SampleListener::onInit(const Controller& controller) {
 	wcout << "Successfully connected to " << ip << " !" << endl;
 	sender.sendData("Message=Connected to the computer !");
 	sendingNeeded = true;
+	currentState = 0;
 }
 
 void SampleListener::onConnect(const Controller& controller) {
@@ -82,6 +86,8 @@ Hand hand2;
 Frame previousFrame;
 Frame startFrame;
 float initHand1x, initHand2x, initHand1y, initHand2y, initHand1z, initHand2z;
+
+
 void SampleListener::onFrame(const Controller& controller) {
 	// Get the most recent frame and report some basic information
 	
@@ -110,7 +116,10 @@ void SampleListener::onFrame(const Controller& controller) {
 	float ringPositionX;
 	float distanceHands;
 	float newDistanceHands;
+	long referenceTimeStamp = 0;
 	
+
+
 	HandList hands = frame.hands();
 	//std::cout << frame.hands().count() << std::endl;
 	for (HandList::const_iterator hl = hands.begin(); hl != hands.end(); ++hl) {
@@ -213,6 +222,13 @@ void SampleListener::onFrame(const Controller& controller) {
 		
 	//	std::cout << handType << "   " << normal.y << "   " << hand.palmPosition().y << "  " << nbFingersFront << std::endl;
 		
+		//if ((hand.isLeft() && (hand.palmNormal().x > 0.8 && hand.palmPosition().x < -70) && (nbFingersFront == 4))
+		//	|| (!(hand.isLeft()) && (hand.palmNormal().x < -0.8 && hand.palmPosition().x >70) && (nbFingersFront == 4))){
+		//	//std::cout << "Main droite ouverte." << std::endl;
+		//	return true;
+		//}
+
+
 		if ((handType == "Left hand") && (normal.x > 0.8 && hand.palmPosition().x < -70) && (nbFingersFront == 4)) {
 		//	std::cout << "Main gauche ouverte." << std::endl;
 			mainGaucheOuverte = true;
@@ -253,6 +269,25 @@ void SampleListener::onFrame(const Controller& controller) {
 
 
 	}
+
+	switch (currentState) {
+	case GestureState::WaitState:
+	{
+									if (mainDroiteOuverte && mainGaucheOuverte) {
+										if (!referenceTimeStamp) {
+											referenceTimeStamp = frame.timestamp();
+										}
+										if (frame.timestamp() - referenceTimeStamp > 2000000) {
+											currentState = SelectionState;
+										}
+
+									}
+									else {
+										referenceTimeStamp = 0;
+									}
+	}
+	}
+
 	if (frame.hands().count() == 2) {
 		//std::cout << "HEYEHEYEHEYEHEY" << std::endl;
 		if (mainDroiteOuverte && mainGaucheOuverte) {
