@@ -275,44 +275,50 @@ void SampleListener::onFrame(const Controller& controller) {
 
 
 
-			// Pour l'instant, on utilise comme référence la première frame dès selection de la maison.
+			// Pour l'instant, on utilise comme référence la première frame dès selection de la maison (startframe)
 			// Réfléchir s'il faut utiliser comme référence la frame précédente, et faire += pour avoir la valeur totale (rotation comme translation)
+			if ((abs(rotationOfHand1y * 180 / M_PI)>30) && (rotationOfHand1y * 180 / M_PI - rotationOfHand2y * 180 / M_PI < 20))
+				cout << "rotation en Y !   " << rotationOfHand1y*180/M_PI << "  " << "rotation 2  " << rotationOfHand2y*180/M_PI << endl;
+			else if ((abs(rotationOfHand1z * 180 / M_PI)>30) && (rotationOfHand1z * 180 / M_PI - rotationOfHand2z * 180 / M_PI < 20))
+				cout << "rotation en Z !   " << rotationOfHand1z * 180 / M_PI << "  " << "rotation 2  " << rotationOfHand2z * 180 / M_PI << endl;
+			else if ((abs(rotationOfHand1x * 180 / M_PI)>30) && (rotationOfHand1x * 180 / M_PI - rotationOfHand2x * 180 / M_PI < 20))
+				cout << "rotation en X !   " << rotationOfHand1x * 180 / M_PI << "  " << "rotation 2  " << rotationOfHand2x * 180 / M_PI << endl;
 
-
-
-			//cout << "rotation 1   " << rotationOfHand1*180/M_PI << "  " << "rotation 2  " << rotationOfHand2*180/M_PI << endl;
-			previousFrame = frame;
-			//	std::cout << "Main 1 =   " << hand1.palmPosition() << std::endl;
-			//	std::cout << "Main 2 =   " << hand2.palmPosition() << std::endl;
-			
-			newDistanceHands = sqrt(pow(hand2.palmPosition().x - hand1.palmPosition().x, 2) + pow(hand2.palmPosition().y - hand1.palmPosition().y, 2) + pow(hand2.palmPosition().z - hand1.palmPosition().z, 2));
-
+	
 		//	std::cout << " Distance  " << distanceHands << std::endl;
 			//cout << "newDistance = " << newDistanceHands << endl;
 			//cout << "Différence  = " << abs(distanceHands - newDistanceHands) << endl;
-			if (abs(distanceHands - newDistanceHands) < 80) { // && Pas rotation !
-			//	std::cout << "Translation" << std::endl;
-			//	cout << "Calcul x1 " << initHand1x - hand1.palmPosition().x << "Calcul x2 " << initHand2x - hand2.palmPosition().x << endl;
-				if ((initHand1x - hand1.palmPosition().x >50) && (initHand2x - hand2.palmPosition().x >50)) {
-					std::cout << "Translation en x" << std::endl;
-				}
-				else if ((initHand1y - hand1.palmPosition().y >50) && (initHand2y - hand2.palmPosition().y >50)) {
-					std::cout << "Translation en y" << std::endl;
-				}
-				else if ((initHand1z - hand1.palmPosition().z >50) && (initHand2z - hand2.palmPosition().z >50)) {
-					std::cout << "Translation en z" << std::endl;
-				}
-			}
-		/*	else if ((abs(distanceHands - newDistanceHands) < 80) && ) {
-
-			}*/
+			
 			else {
-				std::cout << "Zoom" << std::endl;
+				previousFrame = frame;
+				//	std::cout << "Main 1 =   " << hand1.palmPosition() << std::endl;
+				//	std::cout << "Main 2 =   " << hand2.palmPosition() << std::endl;
+
+				newDistanceHands = sqrt(pow(hand2.palmPosition().x - hand1.palmPosition().x, 2) + pow(hand2.palmPosition().y - hand1.palmPosition().y, 2) + pow(hand2.palmPosition().z - hand1.palmPosition().z, 2));
+
+				//Si les mains restent à une distance à peu près stable
+				if (abs(distanceHands - newDistanceHands) < 80) { // && Pas rotation !
+					//	std::cout << "Translation" << std::endl;
+				//		cout << "Calcul x1 " << initHand1x - hand1.palmPosition().x << "Calcul x2 " << initHand2x - hand2.palmPosition().x << endl;
+					if ((abs(initHand1x - hand1.palmPosition().x) > 50) && (abs(initHand2x - hand2.palmPosition().x) > 50)) {
+						std::cout << "Translation en x" << std::endl;
+					}
+					else if ((abs(initHand1y - hand1.palmPosition().y) > 50) && (abs(initHand2y - hand2.palmPosition().y) > 50)) {
+						std::cout << "Translation en y" << std::endl;
+					}
+					else if ((abs(initHand1z - hand1.palmPosition().z) > 50) && (abs(initHand2z - hand2.palmPosition().z) > 50)) {
+						std::cout << "Translation en z" << std::endl;
+					}
+				}
+			//	else if ((abs(distanceHands - newDistanceHands) < 80) && ) {
+
+			//	}
+				else {
+					std::cout << "Zoom" << std::endl;
+				}
+
 			}
 			
-			
-
-
 			//houseCatched = true;
 			if (mainGaucheBas && mainDroiteBas){
 			//	std::cout << "nbFrame uncatched ++." << std::endl;

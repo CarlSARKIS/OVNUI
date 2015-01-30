@@ -1,4 +1,4 @@
-﻿La génération a démarré 16/01/2015 16:09:19.
+﻿La génération a démarré 30/01/2015 19:13:11.
      1>Projet "C:\Users\JB\OVNUI\ConsoleApplication2\ConsoleApplication2.vcxproj" sur le nœud 2 (Build cible(s)).
      1>ClCompile:
          C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin\CL.exe /c /IC:\Users\JB\OVNUI\\ConsoleApplication2\include /Zi /nologo /W3 /WX- /sdl /O2 /Oi /Oy- /GL /D WIN32 /D NDEBUG /D _CONSOLE /D _LIB /D _UNICODE /D UNICODE /Gm- /EHsc /MD /GS /Gy /fp:precise /Zc:wchar_t /Zc:forScope /Yu"stdafx.h" /Fp"Release\ConsoleApplication2.pch" /Fo"Release\\" /Fd"Release\vc120.pdb" /Gd /TP /analyze- /errorReport:prompt ConsoleApplication2.cpp
@@ -13,4 +13,4 @@
 
 La génération a réussi.
 
-Temps écoulé 00:00:03.53
+Temps écoulé 00:00:01.37
