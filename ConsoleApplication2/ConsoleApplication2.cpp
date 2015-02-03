@@ -52,6 +52,7 @@ void SampleListener::onInit(const Controller& controller) {
 	wstring ip;
 	cout << "Please enter the phone IP adress :" << endl;
 	wcin >> ip;
+	ip = L"192.168.137." + ip;
 	wcout << "Connecting to " << ip << "..." << endl;
 	sender.initConnection(ip);
 	wcout << "Successfully connected to " << ip << " !" << endl;
@@ -78,7 +79,7 @@ void SampleListener::onExit(const Controller& controller) {
 }
 int nbFrameCatch = 0, nbFrameUncatch = 0;
 Hand initHand1, initHand2, hand1, hand2;
-Frame previousFrame, startFrame;
+Frame previousFrame, startFrame, secondFrame;
 float rotationOfHand1x, rotationOfHand1y, rotationOfHand1z, rotationOfHand2x, rotationOfHand2y, rotationOfHand2z;
 float initHand1x, initHand2x, initHand1y, initHand2y, initHand1z, initHand2z;
 Vector rotationAxis;
@@ -319,6 +320,7 @@ void SampleListener::onFrame(const Controller& controller) {
 	switch (currentState) {
 	case GestureState::WaitState:
 	{
+
 		//	cout << "STATE = WAIT" << endl;
 		ss_data << "&state=wait";
 		ss_data << "&loading=" << (frame.timestamp() - referenceTimeStamp) / 2000000.0;
@@ -350,7 +352,6 @@ void SampleListener::onFrame(const Controller& controller) {
 		distanceHands = initHand2.palmPosition().distanceTo(initHand1.palmPosition());
 
 
-
 		hand1 = Hand(hands.leftmost());
 		hand2 = hands.rightmost();
 		// std::cout << "MAISON DEJA SELECTIONNEE. Centre des deux mains =   " << (hand1.palmPosition() + hand2.palmPosition()) / 2 << std::endl;
@@ -361,11 +362,19 @@ void SampleListener::onFrame(const Controller& controller) {
 		rotationOfHand1z = hand1.rotationAngle(startFrame, Vector(0, 0, 1));
 		rotationOfHand2z = hand2.rotationAngle(startFrame, Vector(0, 0, 1));
 
+
+		float plop = acos((hand1.palmNormal()).dot(Vector(0, 0, 1)) /
+			(sqrt(hand1.palmPosition().x*hand1.palmPosition().x + hand1.palmPosition().y*hand1.palmPosition().y + hand1.palmPosition().z*hand1.palmPosition().z)) /
+			(sqrt(hand2.palmPosition().x*hand2.palmPosition().x + hand2.palmPosition().y*hand2.palmPosition().y + hand2.palmPosition().z*hand2.palmPosition().z)));
+
+		cout << "plop =  " << plop << endl;
 	//	cout << "COORDONNNESS       " << abs(rotationOfHand1y * 180 / M_PI) << "    " << rotationOfHand1y * 180 / M_PI - rotationOfHand2y * 180 / M_PI << "    " << abs(hand1.palmPosition().z - hand2.palmPosition().z) << endl;
 		//cout << "ROTATION Y !!                                " << abs(rotationOfHand1z * 180 / M_PI) << "    " << abs(rotationOfHand1z * 180 / M_PI) - abs(rotationOfHand2z * 180 / M_PI) << endl;
 		// Pour l'instant, on utilise comme référence la première frame dès selection de la maison (startframe)
 		// Réfléchir s'il faut utiliser comme référence la frame précédente, et faire += pour avoir la valeur totale (rotation comme translation)
-		
+
+		cout << "ROATION  EN Z    ----------------- " << abs(rotationOfHand1z * 180 / M_PI) << endl;
+
 		if (deselection){ //unselect
 			currentState = GestureState::WaitState;
 		}
@@ -384,7 +393,9 @@ void SampleListener::onFrame(const Controller& controller) {
 			currentState = GestureState::RotationState;
 			rotationAxis = Vector(0, 1, 0);
 		}
-		else if ((abs(rotationOfHand1z * 180 / M_PI)>40) && (abs(hand1.palmPosition().y - hand2.palmPosition().y) >10) && hand1.palmPosition().distanceTo(initHand1.palmPosition()) >20 && !(abs(hand1.palmPosition().x - initHand1.palmPosition().x)<20) && !(abs(hand2.palmPosition().x - initHand2.palmPosition().x)<20)) {
+
+		else if ((abs(rotationOfHand1z * 180 / M_PI)>30) && (abs(hand1.palmPosition().y - hand2.palmPosition().y) >10) 
+			&& !(abs(hand1.palmPosition().y - initHand1.palmPosition().y)<10) && !(abs(hand2.palmPosition().y - initHand2.palmPosition().y)<10)) {
 			
 			cout << "rotation en Z !   " << rotationOfHand1z * 180 / M_PI << "  " << "rotation 2  " << rotationOfHand2z * 180 / M_PI << endl;
 			currentState = GestureState::RotationState;
