@@ -82,6 +82,8 @@ Frame previousFrame, startFrame;
 float rotationOfHand1x, rotationOfHand1y, rotationOfHand1z, rotationOfHand2x, rotationOfHand2y, rotationOfHand2z;
 float initHand1x, initHand2x, initHand1y, initHand2y, initHand1z, initHand2z;
 Vector rotationAxis;
+int64_t referenceTimeStamp = 0;
+int64_t endReferenceTimeStamp = 0;
 
 
 void SampleListener::onFrame(const Controller& controller) {
@@ -89,8 +91,16 @@ void SampleListener::onFrame(const Controller& controller) {
 
 	std::stringstream ss_data; // data send to the phone
 
-
 	const Frame frame = controller.frame();
+
+
+	if (!referenceTimeStamp) {
+		referenceTimeStamp = frame.timestamp();
+	}
+	if (!endReferenceTimeStamp) {
+		endReferenceTimeStamp = frame.timestamp();
+	}
+
 	//rotationOfHand1 = hand1.rotationAngle(previousFrame);
 	//previousFrame = frame;
 	controller.config().setFloat("Gesture.Swipe.MinVelocity", 100);
@@ -112,15 +122,14 @@ void SampleListener::onFrame(const Controller& controller) {
 	float ringPositionX;
 	float distanceHands;
 	float newDistanceHands;
-	long referenceTimeStamp = 0;
-	long endReferenceTimeStamp = 0;
 
 
-
+	bool handL = false, handR = false;
 
 	HandList hands = frame.hands();
 	//std::cout << frame.hands().count() << std::endl;
 	for (HandList::const_iterator hl = hands.begin(); hl != hands.end(); ++hl) {
+
 
 		int comp = 0;
 		//	closedLeftFist = false;
@@ -132,6 +141,14 @@ void SampleListener::onFrame(const Controller& controller) {
 		//	<< ", palm position: " << hand.palmPosition() << std::endl;
 		ss_data << "&" << handType << "=" << hand.palmPosition().x << "/" << hand.palmPosition().y << "/" << hand.palmPosition().z;
 
+		if (hand.isLeft()) {
+			ss_data << "&lx=" << hand.palmPosition().x << "&ly=" << hand.palmPosition().y << "&lz" << hand.palmPosition().z;
+			handL = true;
+		}
+		else {
+			ss_data << "&rx=" << hand.palmPosition().x << "&ry=" << hand.palmPosition().y << "&rz" << hand.palmPosition().z;
+			handR = true;
+		}
 
 		// Get the hand's normal vector and direction
 		const Vector normal = hand.palmNormal();
@@ -272,66 +289,63 @@ void SampleListener::onFrame(const Controller& controller) {
 
 	}
 
+
+	
+	ss_data << "&handL=" << handL;
+	ss_data << "&handR=" << handR;
+
+
 	//if (!(frame.hands()[0].palmNormal().dot(frame.hands()[1].palmNormal()) < -0.8))
 	//	cout << "mains plus en face de l'autre" << endl;
 	
 	// bool selection = mainGaucheOuverte && mainDroiteOuverte && ......... 
 	bool selecting = (frame.hands()[0].palmNormal().dot(frame.hands()[1].palmNormal()) < -0.6);
 	
-	if (!selecting){
-		//std::cout << "Hands deselecting." << frame.hands()[0].palmNormal().dot(frame.hands()[1].palmNormal()) << "   " << mainGaucheOuverte << "  "<< mainDroiteOuverte << std::endl;
-		referenceTimeStamp = 0;
-		if (!endReferenceTimeStamp)
-		{
-			endReferenceTimeStamp = frame.timestamp();
-		}
+	if (selecting){
+		//cout << "Hands selecting" << endl;
+
+		endReferenceTimeStamp = frame.timestamp();
 	}
 	else {
-		cout << "Hands selecting" << endl;
-		endReferenceTimeStamp = 0;
-		if (!referenceTimeStamp)
-		{
-			referenceTimeStamp = frame.timestamp();
-		}
+		referenceTimeStamp = frame.timestamp();
+		//std::cout << "Hands deselecting." << frame.hands()[0].palmNormal().dot(frame.hands()[1].palmNormal()) << "   " << mainGaucheOuverte << "  "<< mainDroiteOuverte << std::endl;
+
 	}
+	cout << "selecting = " << (frame.timestamp() - referenceTimeStamp) / 1000000.0 << " ; unselecting = " << (frame.timestamp() - endReferenceTimeStamp) / 1000000.0 << endl;
+	//cout << "selecting = " << referenceTimeStamp << " ; unselecting = " << endReferenceTimeStamp << " ; time = " << frame.timestamp() << endl;
+	
+	bool selection = (frame.timestamp() - referenceTimeStamp) > 1000000, deselection = (frame.timestamp() - endReferenceTimeStamp) > 1000000;
 
 	switch (currentState) {
 	case GestureState::WaitState:
 	{
 		//	cout << "STATE = WAIT" << endl;
-		if (selecting)
+		ss_data << "&state=wait";
+		ss_data << "&loading=" << (frame.timestamp() - referenceTimeStamp) / 2000000.0;
+		if (selection)
 		{
-			if (referenceTimeStamp && frame.timestamp() - referenceTimeStamp > 2000000)
-			{
-				initHand1 = Hand(hands.leftmost());
-				initHand2 = Hand(hands.rightmost());
-				//std::cout << "MAISON SELECTIONNEE. Centre des deux mains =   " << (hand1.palmPosition() + hand2.palmPosition()) / 2 << std::endl;
+			initHand1 = Hand(hands.leftmost());
+			initHand2 = Hand(hands.rightmost());
+			//std::cout << "MAISON SELECTIONNEE. Centre des deux mains =   " << (hand1.palmPosition() + hand2.palmPosition()) / 2 << std::endl;
 
-				initHand1x = initHand1.palmPosition().x;
-				initHand2x = initHand2.palmPosition().x;
-				initHand1y = initHand1.palmPosition().y;
-				initHand2y = initHand2.palmPosition().y;
-				initHand1z = initHand1.palmPosition().z;
-				initHand2z = initHand2.palmPosition().z;
-				distanceHands = initHand2.palmPosition().distanceTo(initHand1.palmPosition());
-				startFrame = frame;
-				currentState = GestureState::SelectionState;
-			}
-			else
-			{
-				ss_data << "&state=selecting" << "&loading=" << (double)(frame.timestamp() - referenceTimeStamp) / 2000000.0;
-				cout << "selecting " << (double)(frame.timestamp() - referenceTimeStamp) / 2000000.0 << endl;
-			}
-		}
-		else {
-			referenceTimeStamp = 0;
-			ss_data << "&state=wait";
-			//	cout << "Wait" << endl;
+			initHand1x = initHand1.palmPosition().x;
+			initHand2x = initHand2.palmPosition().x;
+			initHand1y = initHand1.palmPosition().y;
+			initHand2y = initHand2.palmPosition().y;
+			initHand1z = initHand1.palmPosition().z;
+			initHand2z = initHand2.palmPosition().z;
+
+			distanceHands = initHand2.palmPosition().distanceTo(initHand1.palmPosition());
+			startFrame = frame;
+			currentState = GestureState::SelectionState;
 		}
 		break;
 	}
 	case GestureState::SelectionState:
 	{
+		ss_data << "&state=selected";
+		ss_data << "&loading=" << 1.0 - (frame.timestamp() - endReferenceTimeStamp) / 2000000.0;
+
 		//cout << "STATE = SELECTION" << endl;
 		distanceHands = initHand2.palmPosition().distanceTo(initHand1.palmPosition());
 
@@ -347,20 +361,13 @@ void SampleListener::onFrame(const Controller& controller) {
 		rotationOfHand1z = hand1.rotationAngle(startFrame, Vector(0, 0, 1));
 		rotationOfHand2z = hand2.rotationAngle(startFrame, Vector(0, 0, 1));
 
-
+	//	cout << "COORDONNNESS       " << abs(rotationOfHand1y * 180 / M_PI) << "    " << rotationOfHand1y * 180 / M_PI - rotationOfHand2y * 180 / M_PI << "    " << abs(hand1.palmPosition().z - hand2.palmPosition().z) << endl;
 		//cout << "ROTATION Y !!                                " << abs(rotationOfHand1z * 180 / M_PI) << "    " << abs(rotationOfHand1z * 180 / M_PI) - abs(rotationOfHand2z * 180 / M_PI) << endl;
 		// Pour l'instant, on utilise comme référence la première frame dès selection de la maison (startframe)
 		// Réfléchir s'il faut utiliser comme référence la frame précédente, et faire += pour avoir la valeur totale (rotation comme translation)
-		ss_data << "&loading";
-		if (!selecting && endReferenceTimeStamp && frame.timestamp() - endReferenceTimeStamp <= 2000000) {
-			ss_data << (frame.timestamp() - endReferenceTimeStamp) / 2000000;
-		}
-		else {
-			ss_data << 1;
-		}
-		if (!selecting && endReferenceTimeStamp && frame.timestamp() - endReferenceTimeStamp > 2000000){ //unselect
-			std::cout << "MAISON DESELECTIONNEE." << std::endl;
-			currentState = GestureState::EndTransformationState;
+		
+		if (deselection){ //unselect
+			currentState = GestureState::WaitState;
 		}
 
 	/*	else if (((abs(initHand1x - hand1.palmPosition().x) > 50) && (abs(initHand2x - hand2.palmPosition().x) > 50))
@@ -371,12 +378,13 @@ void SampleListener::onFrame(const Controller& controller) {
 		}*/
 
 		else if ((abs(rotationOfHand1y * 180 / M_PI) > 20)
-			&& (rotationOfHand1y * 180 / M_PI - rotationOfHand2y * 180 / M_PI < 20) && (hand1.palmPosition().z - hand2.palmPosition().z >30)) {
+			&& (rotationOfHand1y * 180 / M_PI - rotationOfHand2y * 180 / M_PI < 20) && (abs(hand1.palmPosition().z - hand2.palmPosition().z) >10)) {
+
 			cout << "rotation en Y !   " << rotationOfHand1y * 180 / M_PI << "  " << "rotation 2  " << rotationOfHand2y * 180 / M_PI << endl;
 			currentState = GestureState::RotationState;
 			rotationAxis = Vector(0, 1, 0);
 		}
-		else if ((abs(rotationOfHand1z * 180 / M_PI)>40) && (hand1.palmPosition().y - hand2.palmPosition().y >30) && hand1.palmPosition().distanceTo(initHand1.palmPosition()) >20 && !(abs(hand1.palmPosition().x - initHand1.palmPosition().x)<20) && !(abs(hand2.palmPosition().x - initHand2.palmPosition().x)<20)) {
+		else if ((abs(rotationOfHand1z * 180 / M_PI)>40) && (abs(hand1.palmPosition().y - hand2.palmPosition().y) >10) && hand1.palmPosition().distanceTo(initHand1.palmPosition()) >20 && !(abs(hand1.palmPosition().x - initHand1.palmPosition().x)<20) && !(abs(hand2.palmPosition().x - initHand2.palmPosition().x)<20)) {
 			
 			cout << "rotation en Z !   " << rotationOfHand1z * 180 / M_PI << "  " << "rotation 2  " << rotationOfHand2z * 180 / M_PI << endl;
 			currentState = GestureState::RotationState;
@@ -402,12 +410,12 @@ void SampleListener::onFrame(const Controller& controller) {
 			newDistanceHands = hand2.palmPosition().distanceTo(hand1.palmPosition());
 		//	cout << " DIFFF XX " << abs(hand1.palmPosition().x - initHand1.palmPosition().x) << endl;
 			//Si les mains restent à une distance à peu près stable
-			if (abs(distanceHands - newDistanceHands) > 50) { // && Pas rotation !
+			if (abs(distanceHands - newDistanceHands) > 50 && (hand1.palmPosition().y - hand2.palmPosition().y < 30 )) { // && Pas rotation !
 				currentState = GestureState::ZoomState;
 			}
-			else if ((((abs(initHand1x - hand1.palmPosition().x) >30) && (abs(initHand2x - hand2.palmPosition().x) > 30))
-				|| ((abs(initHand1y - hand1.palmPosition().y) > 30) && (abs(initHand2y - hand2.palmPosition().y) > 30))
-				|| ((abs(initHand1z - hand1.palmPosition().z) > 30) && (abs(initHand2z - hand2.palmPosition().z) > 30) && (abs(hand1.palmPosition().x - initHand1.palmPosition().x)<20) && (abs(hand1.palmPosition().z - hand2.palmPosition().z)<20) && (abs(hand2.palmPosition().x - initHand2.palmPosition().x)<20))) && (abs(hand1.palmPosition().y - hand2.palmPosition().y)<20) && (abs(initHand1.palmPosition().y - initHand2.palmPosition().y)<20))  {
+			else if ((((abs(initHand1x - hand1.palmPosition().x) >40) && (abs(initHand2x - hand2.palmPosition().x) > 40) && ((initHand1x - hand1.palmPosition().x)*(initHand2x - hand2.palmPosition().x)>0))
+				|| ((abs(initHand1y - hand1.palmPosition().y) > 40) && (abs(initHand2y - hand2.palmPosition().y) > 40) && ((initHand1y - hand1.palmPosition().y)*(initHand2y - hand2.palmPosition().y)>0))
+				|| ((abs(initHand1z - hand1.palmPosition().z) > 40) && (abs(initHand2z - hand2.palmPosition().z) > 40) && (abs(hand1.palmPosition().x - initHand1.palmPosition().x)<20) && (abs(hand1.palmPosition().z - hand2.palmPosition().z)<20) && (abs(hand2.palmPosition().x - initHand2.palmPosition().x)<20))) && (abs(hand1.palmPosition().y - hand2.palmPosition().y)<20) && (abs(initHand1.palmPosition().y - initHand2.palmPosition().y)<20) && ((initHand1z - hand1.palmPosition().z)*(initHand2z - hand2.palmPosition().z)>0))  {
 
 			//	cout << abs(distanceHands - newDistanceHands) << endl;
 
@@ -415,10 +423,7 @@ void SampleListener::onFrame(const Controller& controller) {
 				currentState = GestureState::TranslationState;
 
 			}
-			else
-			{
-				ss_data << "&state=selected"; //houseCatched = true;
-			}
+			
 
 		}
 		break;
@@ -428,32 +433,29 @@ void SampleListener::onFrame(const Controller& controller) {
 		cout << "STATE = STOP" << endl;
 		std::cout << "MAISON DESELECTIONNEE." << std::endl;
 		ss_data << "&state=unselect";
+		ss_data << "&loading=" << 0.0;
+
 		currentState = GestureState::WaitState;
 		break;
 	}
 	case GestureState::ZoomState:
 	{
 		cout << "STATE = ZOOM" << endl;
-		ss_data << "&loading";
-		if (!selecting && endReferenceTimeStamp && frame.timestamp() - endReferenceTimeStamp <= 2000000) {
-			 ss_data << 1 - (frame.timestamp() - endReferenceTimeStamp) / 2000000;
-		}
-		else {
-			ss_data << 1;
-		}
-		if (!selecting && endReferenceTimeStamp && frame.timestamp() - endReferenceTimeStamp > 2000000){ //unselect
-			std::cout << "MAISON DESELECTIONNEE." << std::endl;
+		ss_data << "&loading=" << 1.0 - (frame.timestamp() - endReferenceTimeStamp) / 2000000.0;
+		ss_data << "&state=zoom";
+
+		if (deselection){ //unselect
 			currentState = GestureState::EndTransformationState;
 		}
 
-		ss_data << "&state=zoom" << "&x=1&y=1&z=1&param=" << initHand1x - hand1.palmPosition().x;
 		break;
 	}
 	case GestureState::TranslationState:
 	{
+		ss_data << "&loading=" << 1 - (frame.timestamp() - endReferenceTimeStamp) / 2000000.0;
 
 		ss_data << "&state=translate";
-		//cout << "HAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" << abs(hand1.palmPosition().x - initHand1.palmPosition().x) << "  -  " <<abs(hand2.palmPosition().x - initHand2.palmPosition().x) << endl;
+			//cout << "HAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" << abs(hand1.palmPosition().x - initHand1.palmPosition().x) << "  -  " <<abs(hand2.palmPosition().x - initHand2.palmPosition().x) << endl;
 		//cout << " Y    = " << abs(hand1.palmPosition().x - hand2.palmPosition().x) << endl;
 		if ((abs(initHand1x - hand1.palmPosition().x) > 30) && (abs(initHand2x - hand2.palmPosition().x) > 30)) {
 			cout << "STATE = TRANSLATION EN X" << endl;
@@ -461,53 +463,39 @@ void SampleListener::onFrame(const Controller& controller) {
 		}
 		else if ((abs(initHand1y - hand1.palmPosition().y) > 30) && (abs(initHand2y - hand2.palmPosition().y) > 30)) {
 			cout << "STATE = TRANSLATION EN Y" << endl;
-			ss_data << "&state=translate";
 			// cout << "DAMN IT Y !!  " << abs(hand1.palmPosition().y - hand2.palmPosition().y) << endl;
 			ss_data << "&x=0&y=1&z=0&param=" << initHand1y - hand1.palmPosition().y;
 		}
-		else if ((abs(initHand1z - hand1.palmPosition().z) > 30) && (abs(initHand2z - hand2.palmPosition().z) > 30) && (abs(hand1.palmPosition().x - initHand1.palmPosition().x)<20) && (abs(hand2.palmPosition().x - initHand2.palmPosition().x)<20)){
-		cout << "STATE = TRANSLATION EN Z" << endl;
-		ss_data << "&state=translate";
-		//cout << " DAMN IT ! " << abs(hand1.palmPosition().y - hand2.palmPosition().y) << endl;
-		ss_data << "&x=0&y=0&z=1&param=" << initHand1z - hand1.palmPosition().z;
-	}
-		ss_data << "&loading";
-		if (!selecting && endReferenceTimeStamp && frame.timestamp() - endReferenceTimeStamp <= 2000000) {
-			ss_data << 1 - (frame.timestamp() - endReferenceTimeStamp) / 2000000;
+		else if ((abs(initHand1z - hand1.palmPosition().z) > 30) && (abs(initHand2z - hand2.palmPosition().z) > 30) && (abs(hand1.palmPosition().x - initHand1.palmPosition().x) < 20) && (abs(hand2.palmPosition().x - initHand2.palmPosition().x)<20))
+		{
+			cout << "STATE = TRANSLATION EN Z" << endl;
+			//cout << " DAMN IT ! " << abs(hand1.palmPosition().y - hand2.palmPosition().y) << endl;
+			ss_data << "&x=0&y=0&z=1&param=" << initHand1z - hand1.palmPosition().z;
 		}
-		else {
-			ss_data << 1;
-		}
-		if (!selecting && endReferenceTimeStamp && frame.timestamp() - endReferenceTimeStamp > 2000000){ //unselect
-			std::cout << "MAISON DESELECTIONNEE." << std::endl;
+		
+		if (deselection){ //unselect
 			currentState = GestureState::EndTransformationState;
 		}
 		break;
 	}
 	case GestureState::RotationState:
 	{
+		ss_data << "&state=translate";
+		ss_data << "&loading=" << 1 - (frame.timestamp() - endReferenceTimeStamp) / 2000000.0;
 		//cout << abs(rotationOfHand1z * 180 / M_PI) << "      -     " << abs(rotationOfHand2z * 180 / M_PI) << endl;
 		//cout << hand1.palmPosition().distanceTo(initHand1.palmPosition()) << endl;
-										cout << "STATE = ROTATION" << endl;
-										ss_data << "rotation";
-										ss_data << "&loading";
-										if (!selecting && endReferenceTimeStamp && frame.timestamp() - endReferenceTimeStamp <= 2000000) {
-											ss_data << (frame.timestamp() - endReferenceTimeStamp) / 2000000;
-										}
-										else {
-											ss_data << 1;
-										}
+		cout << "STATE = ROTATION" << endl;
+		
 
-										if (!selecting && endReferenceTimeStamp && frame.timestamp() - endReferenceTimeStamp > 2000000){ //unselect
-											std::cout << "MAISON DESELECTIONNEE." << std::endl;
-											currentState = GestureState::EndTransformationState;
-										}
-										float rotationOfHand1, rotationOfHand2;
-										rotationOfHand1 = hand1.rotationAngle(startFrame, rotationAxis);
-										rotationOfHand2 = hand2.rotationAngle(startFrame, rotationAxis);
-										cout << "Rotation : A" << rotationAxis << " G" << rotationOfHand1 * 180 / M_PI << " D" << rotationOfHand2 * 180 / M_PI << endl;
-										ss_data << "&x=" << rotationAxis.x << "&y=" << rotationAxis.y << "&z="<<rotationAxis.z << "&param=" << rotationOfHand1 * 180 / M_PI;
-										break;
+		if (deselection){ //unselect
+			currentState = GestureState::EndTransformationState;
+		}
+		float rotationOfHand1, rotationOfHand2;
+		rotationOfHand1 = hand1.rotationAngle(startFrame, rotationAxis);
+		rotationOfHand2 = hand2.rotationAngle(startFrame, rotationAxis);
+		cout << "Rotation : A" << rotationAxis << " G" << rotationOfHand1 * 180 / M_PI << " D" << rotationOfHand2 * 180 / M_PI << endl;
+		ss_data << "&x=" << rotationAxis.x << "&y=" << rotationAxis.y << "&z="<<rotationAxis.z << "&param=" << rotationOfHand1 * 180 / M_PI;
+		break;
 	}
 	default:
 	{
