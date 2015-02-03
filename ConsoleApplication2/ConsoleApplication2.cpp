@@ -362,12 +362,6 @@ void SampleListener::onFrame(const Controller& controller) {
 		rotationOfHand1z = hand1.rotationAngle(startFrame, Vector(0, 0, 1));
 		rotationOfHand2z = hand2.rotationAngle(startFrame, Vector(0, 0, 1));
 
-
-		float plop = acos((hand1.palmNormal()).dot(Vector(0, 0, 1)) /
-			(sqrt(hand1.palmPosition().x*hand1.palmPosition().x + hand1.palmPosition().y*hand1.palmPosition().y + hand1.palmPosition().z*hand1.palmPosition().z)) /
-			(sqrt(hand2.palmPosition().x*hand2.palmPosition().x + hand2.palmPosition().y*hand2.palmPosition().y + hand2.palmPosition().z*hand2.palmPosition().z)));
-
-		cout << "plop =  " << plop << endl;
 	//	cout << "COORDONNNESS       " << abs(rotationOfHand1y * 180 / M_PI) << "    " << rotationOfHand1y * 180 / M_PI - rotationOfHand2y * 180 / M_PI << "    " << abs(hand1.palmPosition().z - hand2.palmPosition().z) << endl;
 		//cout << "ROTATION Y !!                                " << abs(rotationOfHand1z * 180 / M_PI) << "    " << abs(rotationOfHand1z * 180 / M_PI) - abs(rotationOfHand2z * 180 / M_PI) << endl;
 		// Pour l'instant, on utilise comme référence la première frame dès selection de la maison (startframe)
@@ -376,7 +370,7 @@ void SampleListener::onFrame(const Controller& controller) {
 		cout << "ROATION  EN Z    ----------------- " << abs(rotationOfHand1z * 180 / M_PI) << endl;
 
 		if (deselection){ //unselect
-			currentState = GestureState::WaitState;
+			currentState = GestureState::EndTransformationState;
 		}
 
 	/*	else if (((abs(initHand1x - hand1.palmPosition().x) > 50) && (abs(initHand2x - hand2.palmPosition().x) > 50))
