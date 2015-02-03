@@ -353,7 +353,7 @@ void SampleListener::onFrame(const Controller& controller) {
 		// Réfléchir s'il faut utiliser comme référence la frame précédente, et faire += pour avoir la valeur totale (rotation comme translation)
 		ss_data << "&loading";
 		if (!selecting && endReferenceTimeStamp && frame.timestamp() - endReferenceTimeStamp <= 2000000) {
-			ss_data << (frame.timestamp() - endReferenceTimeStamp) / 2000000;
+			ss_data << 1- (frame.timestamp() - endReferenceTimeStamp) / 2000000;
 		}
 		else {
 			ss_data << 1;
@@ -492,7 +492,7 @@ void SampleListener::onFrame(const Controller& controller) {
 										ss_data << "rotation";
 										ss_data << "&loading";
 										if (!selecting && endReferenceTimeStamp && frame.timestamp() - endReferenceTimeStamp <= 2000000) {
-											ss_data << (frame.timestamp() - endReferenceTimeStamp) / 2000000;
+											ss_data << 1 - (frame.timestamp() - endReferenceTimeStamp) / 2000000;
 										}
 										else {
 											ss_data << 1;
