@@ -50,12 +50,12 @@ const std::string stateNames[] = { "STATE_INVALID", "STATE_START", "STATE_UPDATE
 void SampleListener::onInit(const Controller& controller) {
 	std::cout << "Initialized" << std::endl;
 	wstring ip;
-	//cout << "Please enter the phone IP adress :" << endl;
-	//wcin >> ip;
+	cout << "Please enter the phone IP adress :" << endl;
+	wcin >> ip;
 	wcout << "Connecting to " << ip << "..." << endl;
-	//sender.initConnection(ip);
-	//wcout << "Successfully connected to " << ip << " !" << endl;
-	//sender.sendData("Message=Connected to the computer !");
+	sender.initConnection(ip);
+	wcout << "Successfully connected to " << ip << " !" << endl;
+	sender.sendData("Message=Connected to the computer !");
 	sendingNeeded = true;
 	currentState = 0;
 }
@@ -579,11 +579,11 @@ void SampleListener::onFrame(const Controller& controller) {
 		/*std::cout << std::endl;*/
 	}
 	Frame prevFrame = frame;
-
+	
 	if (sendingNeeded) {
 		string data;
 		ss_data >> data;
-	//	sender.sendData(data);
+		sender.sendData(data);
 	}
 	sendingNeeded = !sendingNeeded;
 }
