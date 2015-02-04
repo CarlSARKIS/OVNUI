@@ -505,9 +505,11 @@ void SampleListener::onFrame(const Controller& controller) {
 	}
 	case GestureState::ZoomState:
 	{
-		cout << "STATE = ZOOM" << endl;
-		ss_data << "&loading=" << 1.0 - (frame.timestamp() - endReferenceTimeStamp) / 1000000.0;
+		cout << "STATE = ZOOM : " << abs((hand1.palmPosition().x - hand2.palmPosition().x) / (initHand1x - initHand2x));
 		ss_data << "&state=zoom";
+		ss_data << "&loading=" << 1.0 - (frame.timestamp() - endReferenceTimeStamp) / 1000000.0;
+		ss_data << "&x=1&y=1&z=1&param=" << abs((hand1.palmPosition().x - hand2.palmPosition().x) / (initHand1x - initHand2x));
+
 
 		if (deselection){ //unselect
 			currentState = GestureState::EndTransformationState;
