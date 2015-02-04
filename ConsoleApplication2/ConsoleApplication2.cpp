@@ -23,7 +23,7 @@ using namespace std;
 
 static char escape = (char)27; // code of the "escape" char
 bool plop2 = true;
-enum GestureState { WaitState = 0, SelectionState, RotationState, TranslationState, ZoomState, EndTransformationState };
+enum GestureState { WaitState = 0, SelectionState, RotationState, TranslationState, ZoomState, EndTransformationState, SelectMenu, DeselectMenu };
 int currentState;
 
 class SampleListener : public Listener {
@@ -46,7 +46,7 @@ private:
 const std::string fingerNames[] = { "Thumb", "Index", "Middle", "Ring", "Pinky" };
 const std::string boneNames[] = { "Metacarpal", "Proximal", "Middle", "Distal" };
 const std::string stateNames[] = { "STATE_INVALID", "STATE_START", "STATE_UPDATE", "STATE_END" };
-
+bool menuSelected;
 void SampleListener::onInit(const Controller& controller) {
 	std::cout << "Initialized" << std::endl;
 	wstring ip;
@@ -79,7 +79,7 @@ void SampleListener::onExit(const Controller& controller) {
 }
 int nbFrameCatch = 0, nbFrameUncatch = 0;
 Hand initHand1, initHand2, hand1, hand2;
-Frame previousFrame, startFrame, secondFrame;
+Frame previousFrame, startFrame, secondFrame, startFrameMenu, deselectFrame;
 float rotationOfHand1x, rotationOfHand1y, rotationOfHand1z, rotationOfHand2x, rotationOfHand2y, rotationOfHand2z;
 float initHand1x, initHand2x, initHand1y, initHand2y, initHand1z, initHand2z;
 Vector rotationAxis;
@@ -129,6 +129,7 @@ void SampleListener::onFrame(const Controller& controller) {
 
 	HandList hands = frame.hands();
 	//std::cout << frame.hands().count() << std::endl;
+	int nbFingersFront = 0;
 	for (HandList::const_iterator hl = hands.begin(); hl != hands.end(); ++hl) {
 
 
@@ -168,7 +169,7 @@ void SampleListener::onFrame(const Controller& controller) {
 
 		// Get fingers
 		const FingerList fingers = hand.fingers();
-		int nbFingersFront = 0;
+		
 		float proximalYMin = 1000;
 		float proximalYMax = 0;
 		for (FingerList::const_iterator fl = fingers.begin(); fl != fingers.end(); ++fl) {
@@ -201,7 +202,9 @@ void SampleListener::onFrame(const Controller& controller) {
 				//	cout << abs(bone.direction().dot(hand.palmNormal())) << endl;
 			//	if (((fingerNames[finger.type()] != "Thumb") && (boneNames[boneType] == "Proximal") && (abs(bone.direction().dot(hand.palmNormal())) <= 0.5)))
 			//		nbFingersFront++;
-				if (((fingerNames[finger.type()] == "Index") && (boneNames[boneType] == "Proximal") && finger.direction().z < -0.8 ))
+		//		cout << fingerNames[finger.type()] << "   " << (boneNames[boneType]) << "  " <<finger.direction() << endl;
+				if (((fingerNames[finger.type()] == "Index") && (boneNames[boneType] == "Proximal") && finger.direction().z < -0.8 ) ||
+					((fingerNames[finger.type()] != "Index") && (fingerNames[finger.type()] != "Thumb") && (boneNames[boneType] == "Proximal") && finger.direction().y < 0))
 					nbFingersFront++;
 				if (boneNames[boneType] == "Proximal") {
 					//std::cout << fingerNames[finger.type()]
@@ -250,6 +253,10 @@ void SampleListener::onFrame(const Controller& controller) {
 		//	return true;
 		//}
 
+	//	if (nbFingersFront)
+		//cout << "NB FINGERS FRONT  " << nbFingersFront << endl;
+
+	//	if (nbFingersFront ==8)
 
 		if (hand.isLeft() && (nbFingersFront >= 2)) {
 		//	std::cout << "Main gauche ouverte." << std::endl;
@@ -267,7 +274,7 @@ void SampleListener::onFrame(const Controller& controller) {
 			//std::cout << "Main droite ouverte." << std::endl;
 			mainDroiteBas = true;
 		}
-		nbFingersFront = 0;
+		//nbFingersFront = 0;
 		proximalYMin = 1000;
 		proximalYMax = 0;
 		//	else if ((handType == "Right hand") && (thumbPositionX > ringPositionX) && ()
@@ -292,8 +299,15 @@ void SampleListener::onFrame(const Controller& controller) {
 
 	}
 
+	Bone::Type boneTypeD = static_cast<Bone::Type>(3);
+//	if (nbFingersFront == 8)
+//		cout << " --------- " << abs(frame.hands()[0].fingers()[1].bone(boneTypeD).center().x - frame.hands()[1].fingers()[1].bone(boneTypeD).center().x) << endl;
+	bool displayMenu = (nbFingersFront == 8 && abs(frame.hands()[0].fingers()[1].bone(boneTypeD).center().x - frame.hands()[1].fingers()[1].bone(boneTypeD).center().x) < 20);
+	//cout << "BOUUUH " << endl;
+	//menuSelected = false;
 
-	
+
+
 	ss_data << "&handL=" << handL;
 	ss_data << "&handR=" << handR;
 
@@ -322,6 +336,13 @@ void SampleListener::onFrame(const Controller& controller) {
 	switch (currentState) {
 	case GestureState::WaitState:
 	{
+		if (displayMenu && (frame.timestamp() - deselectFrame.timestamp() > 2000000.0)){
+			startFrameMenu = frame;
+
+			initHand1 = Hand(hands.leftmost());
+			initHand2 = Hand(hands.rightmost());
+			currentState = GestureState::SelectMenu;
+		}
 		plop2 = true;
 		//	cout << "STATE = WAIT" << endl;
 		ss_data << "&state=wait";
@@ -341,12 +362,41 @@ void SampleListener::onFrame(const Controller& controller) {
 
 			distanceHands = initHand2.palmPosition().distanceTo(initHand1.palmPosition());
 			startFrame = frame;
+			cout << "MAISON SELECTIONNEE" << endl;
 			currentState = GestureState::SelectionState;
+		}
+		break;
+	}
+	case GestureState::SelectMenu:{
+		hand1 = Hand(hands.leftmost());
+		hand2 = hands.rightmost();
+	//	cout << "Je suis dans SelectMenu !  " << abs(hand1.fingers()[1].bone(boneTypeD).center().x - initHand1.fingers()[1].bone(boneTypeD).center().x) <<endl;
+		if (abs(hand1.fingers()[1].bone(boneTypeD).center().x - initHand1.fingers()[1].bone(boneTypeD).center().x) > 80) {
+			cout << "MENU SELECTIONNE !" << endl;
+			currentState = GestureState::DeselectMenu;
+	//		menuSelected = true;      
+		}
+	//	if (menuSelected)
+	//		currentState = GestureState::WaitState;
+		break;
+	}
+
+	case GestureState::DeselectMenu:{
+		hand1 = Hand(hands.leftmost());
+		hand2 = hands.rightmost();
+		//	cout << "Je suis dans SelectMenu !  " << abs(hand1.fingers()[1].bone(boneTypeD).center().x - initHand1.fingers()[1].bone(boneTypeD).center().x) <<endl;
+		if (abs(hand1.fingers()[1].bone(boneTypeD).center().x - initHand1.fingers()[1].bone(boneTypeD).center().x) < 10) {
+			cout << "MENU DESELECTIONNE !" << endl;
+		//	menuSelected = true;
+			displayMenu = false;
+			deselectFrame = frame;
+			currentState = GestureState::WaitState;
 		}
 		break;
 	}
 	case GestureState::SelectionState:
 	{
+		
 		ss_data << "&state=selected";
 		ss_data << "&loading=" << 1.0 - (frame.timestamp() - endReferenceTimeStamp) / 1000000.0;
 
@@ -564,31 +614,31 @@ void SampleListener::onFrame(const Controller& controller) {
 		case Gesture::TYPE_SWIPE:
 		{
 									SwipeGesture swipe = gesture;
-									std::cout << std::string(2, ' ')
+								/*	std::cout << std::string(2, ' ')
 									<< "Swipe id: " << gesture.id()
 									<< ", state: " << stateNames[gesture.state()]
 									<< ", direction: " << swipe.direction()
-									<< ", speed: " << swipe.speed() << std::endl;
+									<< ", speed: " << swipe.speed() << std::endl;*/
 									break;
 		}
 		case Gesture::TYPE_KEY_TAP:
 		{
 									  KeyTapGesture tap = gesture;
-									  std::cout << std::string(2, ' ')
+									 /* std::cout << std::string(2, ' ')
 										  << "Key Tap id: " << gesture.id()
 										  << ", state: " << stateNames[gesture.state()]
 										  << ", position: " << tap.position()
-										  << ", direction: " << tap.direction() << std::endl;
+										  << ", direction: " << tap.direction() << std::endl;*/
 									  break;
 		}
 		case Gesture::TYPE_SCREEN_TAP:
 		{
 										 ScreenTapGesture screentap = gesture;
-										 std::cout << std::string(2, ' ')
+									/*	 std::cout << std::string(2, ' ')
 											 << "Screen Tap id: " << gesture.id()
 											 << ", state: " << stateNames[gesture.state()]
 											 << ", position: " << screentap.position()
-											 << ", direction: " << screentap.direction() << std::endl;
+											 << ", direction: " << screentap.direction() << std::endl;*/
 										 break;
 		}
 		default:
