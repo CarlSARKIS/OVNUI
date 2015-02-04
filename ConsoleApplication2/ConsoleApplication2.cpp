@@ -257,6 +257,11 @@ void SampleListener::onFrame(const Controller& controller) {
 		//cout << "NB FINGERS FRONT  " << nbFingersFront << endl;
 
 	//	if (nbFingersFront ==8)
+		if (hand.isLeft())
+			hand1 = hand;
+		if (hand.isRight())
+			hand2 = hand;
+
 
 		if (hand.isLeft() && (nbFingersFront >= 2)) {
 		//	std::cout << "Main gauche ouverte." << std::endl;
@@ -333,6 +338,7 @@ void SampleListener::onFrame(const Controller& controller) {
 	
 	bool selection = (frame.timestamp() - referenceTimeStamp) > 1000000, deselection = (frame.timestamp() - endReferenceTimeStamp) > 1000000;
 
+
 	switch (currentState) {
 	case GestureState::WaitState:
 	{
@@ -404,8 +410,7 @@ void SampleListener::onFrame(const Controller& controller) {
 		distanceHands = initHand2.palmPosition().distanceTo(initHand1.palmPosition());
 
 
-		hand1 = Hand(hands.leftmost());
-		hand2 = hands.rightmost();
+		
 		// std::cout << "MAISON DEJA SELECTIONNEE. Centre des deux mains =   " << (hand1.palmPosition() + hand2.palmPosition()) / 2 << std::endl;
 		
 	//	if (frame.hands()[0].palmNormal().dot(frame.hands()[1].palmNormal()) < -0.8 && plop2) {
