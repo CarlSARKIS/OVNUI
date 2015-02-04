@@ -314,7 +314,7 @@ void SampleListener::onFrame(const Controller& controller) {
 		//std::cout << "Hands deselecting." << frame.hands()[0].palmNormal().dot(frame.hands()[1].palmNormal()) << "   " << mainGaucheOuverte << "  "<< mainDroiteOuverte << std::endl;
 
 	}
-//	cout << "selecting = " << (frame.timestamp() - referenceTimeStamp) / 1000000.0 << " ; unselecting = " << (frame.timestamp() - endReferenceTimeStamp) / 1000000.0 << endl;
+	cout << "selecting = " << (frame.timestamp() - referenceTimeStamp) / 1000000.0 << " ; unselecting = " << (frame.timestamp() - endReferenceTimeStamp) / 1000000.0 << endl;
 	//cout << "selecting = " << referenceTimeStamp << " ; unselecting = " << endReferenceTimeStamp << " ; time = " << frame.timestamp() << endl;
 	
 	bool selection = (frame.timestamp() - referenceTimeStamp) > 1000000, deselection = (frame.timestamp() - endReferenceTimeStamp) > 1000000;
@@ -325,7 +325,7 @@ void SampleListener::onFrame(const Controller& controller) {
 		plop2 = true;
 		//	cout << "STATE = WAIT" << endl;
 		ss_data << "&state=wait";
-		ss_data << "&loading=" << (frame.timestamp() - referenceTimeStamp) / 2000000.0;
+		ss_data << "&loading=" << (frame.timestamp() - referenceTimeStamp) / 1000000.0;
 		if (selection)
 		{
 			initHand1 = Hand(hands.leftmost());
@@ -348,7 +348,7 @@ void SampleListener::onFrame(const Controller& controller) {
 	case GestureState::SelectionState:
 	{
 		ss_data << "&state=selected";
-		ss_data << "&loading=" << 1.0 - (frame.timestamp() - endReferenceTimeStamp) / 2000000.0;
+		ss_data << "&loading=" << 1.0 - (frame.timestamp() - endReferenceTimeStamp) / 1000000.0;
 
 		//cout << "STATE = SELECTION" << endl;
 		distanceHands = initHand2.palmPosition().distanceTo(initHand1.palmPosition());
@@ -451,7 +451,7 @@ void SampleListener::onFrame(const Controller& controller) {
 	case GestureState::ZoomState:
 	{
 		cout << "STATE = ZOOM" << endl;
-		ss_data << "&loading=" << 1.0 - (frame.timestamp() - endReferenceTimeStamp) / 2000000.0;
+		ss_data << "&loading=" << 1.0 - (frame.timestamp() - endReferenceTimeStamp) / 1000000.0;
 		ss_data << "&state=zoom";
 
 		if (deselection){ //unselect
@@ -462,7 +462,7 @@ void SampleListener::onFrame(const Controller& controller) {
 	}
 	case GestureState::TranslationState:
 	{
-		ss_data << "&loading=" << 1 - (frame.timestamp() - endReferenceTimeStamp) / 2000000.0;
+		ss_data << "&loading=" << 1 - (frame.timestamp() - endReferenceTimeStamp) / 1000000.0;
 
 		ss_data << "&state=translate";
 			//cout << "HAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" << abs(hand1.palmPosition().x - initHand1.palmPosition().x) << "  -  " <<abs(hand2.palmPosition().x - initHand2.palmPosition().x) << endl;
@@ -490,8 +490,8 @@ void SampleListener::onFrame(const Controller& controller) {
 	}
 	case GestureState::RotationState:
 	{
-		ss_data << "&state=translate";
-		ss_data << "&loading=" << 1 - (frame.timestamp() - endReferenceTimeStamp) / 2000000.0;
+		ss_data << "&state=rotate";
+		ss_data << "&loading=" << 1 - (frame.timestamp() - endReferenceTimeStamp) / 1000000.0;
 		//cout << abs(rotationOfHand1z * 180 / M_PI) << "      -     " << abs(rotationOfHand2z * 180 / M_PI) << endl;
 		//cout << hand1.palmPosition().distanceTo(initHand1.palmPosition()) << endl;
 		cout << "STATE = ROTATION" << endl;
