@@ -405,6 +405,7 @@ void SampleListener::onFrame(const Controller& controller) {
 	//	cout << "Je suis dans SelectMenu !  " << abs(hand1.fingers()[1].bone(boneTypeD).center().x - initHand1.fingers()[1].bone(boneTypeD).center().x) <<endl;
 		if (abs(hand1.fingers()[1].bone(boneTypeD).center().x - initHand1.fingers()[1].bone(boneTypeD).center().x) > 80) {
 			std::cout << "MENU SELECTIONNE !" << endl;
+			ss_data << "&state=select menu&loading=0";
 			currentState = GestureState::DeselectMenu;
 	//		menuSelected = true;      
 		}
@@ -419,6 +420,7 @@ void SampleListener::onFrame(const Controller& controller) {
 		//	cout << "Je suis dans SelectMenu !  " << abs(hand1.fingers()[1].bone(boneTypeD).center().x - initHand1.fingers()[1].bone(boneTypeD).center().x) <<endl;
 		if (abs(hand1.fingers()[1].bone(boneTypeD).center().x - initHand1.fingers()[1].bone(boneTypeD).center().x) < 10) {
 			std::cout << "MENU DESELECTIONNE !" << endl;
+			ss_data << "&state=deselect menu&loading=0";
 		//	menuSelected = true;
 			displayMenu = false;
 			deselectFrame = frame;
