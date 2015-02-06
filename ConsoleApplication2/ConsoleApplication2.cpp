@@ -85,7 +85,8 @@ float initHand1x, initHand2x, initHand1y, initHand2y, initHand1z, initHand2z;
 Vector rotationAxis;
 int64_t referenceTimeStamp = 0;
 int64_t endReferenceTimeStamp = 0;
-
+bool sameHand = true, pointingLeftHand = false, pointingRightHand=false;
+Hand leftHandFirstSelect, rightHandFirstSelect;
 void SampleListener::onFrame(const Controller& controller) {
 	// Get the most recent frame and report some basic information
 
@@ -183,6 +184,13 @@ void SampleListener::onFrame(const Controller& controller) {
 		
 		float proximalYMin = 1000;
 		float proximalYMax = 0;
+
+
+
+
+
+
+
 		for (FingerList::const_iterator fl = fingers.begin(); fl != fingers.end(); ++fl) {
 			const Finger finger = *fl;
 			/*	std::cout << std::string(4, ' ') <<  fingerNames[finger.type()]
@@ -218,11 +226,28 @@ void SampleListener::onFrame(const Controller& controller) {
 			//	if (((fingerNames[finger.type()] != "Thumb") && (boneNames[boneType] == "Proximal") && (abs(bone.direction().dot(hand.palmNormal())) <= 0.5)))
 			//		nbFingersFront++;
 		//		cout << fingerNames[finger.type()] << "   " << (boneNames[boneType]) << "  " <<finger.direction() << endl;
-			
+				
 				
 				if (((fingerNames[finger.type()] == "Index") && (boneNames[boneType] == "Proximal") && finger.direction().z < -0.8 ) ||
 					((fingerNames[finger.type()] != "Index") && (fingerNames[finger.type()] != "Thumb") && (boneNames[boneType] == "Proximal") && finger.direction().y < 0))
 					nbFingersFront++;
+
+		/*		if ((nbFingersFront == 4) && sameHand && hand.isLeft()) {
+					cout << "HAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa" << endl;
+					pointingLeftHand = true;
+				}
+				if ((nbFingersFront == 4) && sameHand && hand.isRight())
+					pointingRightHand = true;
+				if ((nbFingersFront == 8)) {
+					cout << "HAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAa" << endl;
+
+					pointingLeftHand = true;
+					pointingRightHand = true;
+				}*/
+
+
+
+
 				if (boneNames[boneType] == "Proximal") {
 					//std::cout << fingerNames[finger.type()]
 					//<< " finger "  << " direction " << bone.center() << std::endl;
@@ -327,9 +352,9 @@ void SampleListener::onFrame(const Controller& controller) {
 		}
 
 		meanDirectionFingers = Vector(0, 0, 0);
-
+		sameHand = false;
 	}
-
+	sameHand = true;
 	Bone::Type boneTypeD = static_cast<Bone::Type>(3);
 //	if (nbFingersFront == 8)
 //		cout << " --------- " << abs(frame.hands()[0].fingers()[1].bone(boneTypeD).center().x - frame.hands()[1].fingers()[1].bone(boneTypeD).center().x) << endl;
@@ -409,6 +434,7 @@ void SampleListener::onFrame(const Controller& controller) {
 			currentState = GestureState::DeselectMenu;
 	//		menuSelected = true;      
 		}
+		
 	//	if (menuSelected)
 	//		currentState = GestureState::WaitState;
 		break;
@@ -417,7 +443,98 @@ void SampleListener::onFrame(const Controller& controller) {
 	case GestureState::DeselectMenu:{
 		hand1 = Hand(hands.leftmost());
 		hand2 = hands.rightmost();
-		//	cout << "Je suis dans SelectMenu !  " << abs(hand1.fingers()[1].bone(boneTypeD).center().x - initHand1.fingers()[1].bone(boneTypeD).center().x) <<endl;
+		
+
+		const FingerList fingers1 = hand1.fingers();
+		const FingerList fingers2 = hand2.fingers();
+		nbFingersFront = 0;
+		for (FingerList::const_iterator fl = fingers1.begin(); fl != fingers1.end(); ++fl) {
+			const Finger finger = *fl;
+
+			for (int b = 0; b < 4; ++b) {
+				Bone::Type boneType = static_cast<Bone::Type>(b);
+				Bone bone = finger.bone(boneType);
+
+				if (((fingerNames[finger.type()] == "Index") && (boneNames[boneType] == "Proximal") && finger.direction().z < -0.8) ||
+					((fingerNames[finger.type()] != "Index") && (fingerNames[finger.type()] != "Thumb") && (boneNames[boneType] == "Proximal") && finger.direction().y < 0))
+					nbFingersFront++;
+			}
+		}
+				if (hand1.isLeft()) {
+					if (nbFingersFront == 4) {
+						if (!pointingLeftHand) {
+							leftHandFirstSelect = hand1;
+						}
+						pointingLeftHand = true;
+					}
+					else {
+						pointingLeftHand = false;
+					}
+				}
+				else if (hand1.isRight()) {
+					if (nbFingersFront == 4) {
+						if (!pointingRightHand) {
+							rightHandFirstSelect = hand1;
+						}
+						pointingRightHand = true;
+					}
+					else
+						pointingRightHand = false;
+				}
+
+			
+		
+
+		nbFingersFront=0;
+
+		for (FingerList::const_iterator fl = fingers2.begin(); fl != fingers2.end(); ++fl) {
+			const Finger finger = *fl;
+
+			for (int b = 0; b < 4; ++b) {
+				Bone::Type boneType = static_cast<Bone::Type>(b);
+				Bone bone = finger.bone(boneType);
+
+				if (((fingerNames[finger.type()] == "Index") && (boneNames[boneType] == "Proximal") && finger.direction().z < -0.8) ||
+					((fingerNames[finger.type()] != "Index") && (fingerNames[finger.type()] != "Thumb") && (boneNames[boneType] == "Proximal") && finger.direction().y < 0))
+					nbFingersFront++;
+			}
+		}
+		if (hand2.isLeft()) {
+					if (nbFingersFront == 4) {
+						if (!pointingLeftHand)
+							leftHandFirstSelect = hand2;
+						pointingLeftHand = true;
+					}
+					else 
+						pointingLeftHand = false;
+				}
+				else if (hand2.isRight()) {
+					if (nbFingersFront == 4) {
+						if (!pointingRightHand)
+							rightHandFirstSelect = hand2;
+						pointingRightHand = true;
+					}
+					else
+						pointingRightHand = false;
+				}
+			
+		
+
+	//	cout << "pointing Left =  " << pointingLeftHand << "   pointing Right   =  " << pointingRightHand << endl;
+	//	cout << abs(leftHandFirstSelect.palmPosition().x - hand1.palmPosition().x) << endl;
+		if (pointingLeftHand && (abs(leftHandFirstSelect.palmPosition().x - hand1.palmPosition().x)<20) && leftHandFirstSelect.palmPosition().distanceTo(hand1.palmPosition())>30   ) {
+			cout << "Pointing left " << endl;
+			ss_data << "&pointing" << true;
+		}
+		else
+			ss_data << "&pointing" << false;
+		if (pointingRightHand && (abs(rightHandFirstSelect.palmPosition().x - hand2.palmPosition().x)<20) && rightHandFirstSelect.palmPosition().distanceTo(hand2.palmPosition())>30) {
+			cout << "Pointing right " << endl;
+			ss_data << "&pointing" << true;
+		} else
+			ss_data << "&pointing" << false;
+
+		//	cout << "Je suis dans SelectMenu !  " << abs(phand1.fingers()[1].bone(boneTypeD).center().x - initHand1.fingers()[1].bone(boneTypeD).center().x) <<endl;
 		if (abs(hand1.fingers()[1].bone(boneTypeD).center().x - initHand1.fingers()[1].bone(boneTypeD).center().x) < 10) {
 			std::cout << "MENU DESELECTIONNE !" << endl;
 			ss_data << "&state=deselect menu&loading=0";
@@ -669,11 +786,11 @@ void SampleListener::onFrame(const Controller& controller) {
 		case Gesture::TYPE_SCREEN_TAP:
 		{
 										 ScreenTapGesture screentap = gesture;
-										 std::cout << std::string(2, ' ')
+										/* std::cout << std::string(2, ' ')
 											 << "Screen Tap id: " << gesture.id()
 											 << ", state: " << stateNames[gesture.state()]
 											 << ", position: " << screentap.position()
-											 << ", direction: " << screentap.direction() << std::endl;
+											 << ", direction: " << screentap.direction() << std::endl;*/
 										 break;
 		}
 		default:
