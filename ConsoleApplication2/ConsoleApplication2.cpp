@@ -50,13 +50,13 @@ bool menuSelected;
 void SampleListener::onInit(const Controller& controller) {
 	std::cout << "Initialized" << std::endl;
 	wstring ip;
-	cout << "Please enter the phone IP adress :" << endl;
-	wcin >> ip;
-	ip = L"192.168.137." + ip;
-	wcout << "Connecting to " << ip << "..." << endl;
-	sender.initConnection(ip);
-	wcout << "Successfully connected to " << ip << " !" << endl;
-	sender.sendData("Message=Connected to the computer !");
+	//cout << "Please enter the phone IP adress :" << endl;
+	//wcin >> ip;
+	//ip = L"192.168.137." + ip;
+	//wcout << "Connecting to " << ip << "..." << endl;
+	//sender.initConnection(ip);
+	//wcout << "Successfully connected to " << ip << " !" << endl;
+	//sender.sendData("Message=Connected to the computer !");
 	sendingNeeded = true;
 	currentState = 0;
 }
@@ -359,7 +359,7 @@ void SampleListener::onFrame(const Controller& controller) {
 		//std::cout << "Hands deselecting." << frame.hands()[0].palmNormal().dot(frame.hands()[1].palmNormal()) << "   " << mainGaucheOuverte << "  "<< mainDroiteOuverte << std::endl;
 
 	}
-	cout << "selecting = " << (frame.timestamp() - referenceTimeStamp) / 1000000.0 << " ; unselecting = " << (frame.timestamp() - endReferenceTimeStamp) / 1000000.0 << endl;
+	//cout << "selecting = " << (frame.timestamp() - referenceTimeStamp) / 1000000.0 << " ; unselecting = " << (frame.timestamp() - endReferenceTimeStamp) / 1000000.0 << endl;
 	//cout << "selecting = " << referenceTimeStamp << " ; unselecting = " << endReferenceTimeStamp << " ; time = " << frame.timestamp() << endl;
 	
 	bool selection = (frame.timestamp() - referenceTimeStamp) > 1000000, deselection = (frame.timestamp() - endReferenceTimeStamp) > 1000000;
@@ -689,7 +689,7 @@ void SampleListener::onFrame(const Controller& controller) {
 	if (sendingNeeded) {
 		string data;
 		ss_data >> data;
-		sender.sendData(data);
+		//sender.sendData(data);
 	}
 	sendingNeeded = !sendingNeeded;
 }
