@@ -50,13 +50,13 @@ bool menuSelected;
 void SampleListener::onInit(const Controller& controller) {
 	std::cout << "Initialized" << std::endl;
 	wstring ip;
-	//cout << "Please enter the phone IP adress :" << endl;
-	//wcin >> ip;
-	//ip = L"192.168.137." + ip;
-	//wcout << "Connecting to " << ip << "..." << endl;
-	//sender.initConnection(ip);
-	//wcout << "Successfully connected to " << ip << " !" << endl;
-	//sender.sendData("Message=Connected to the computer !");
+	cout << "Please enter the phone IP adress :" << endl;
+	wcin >> ip;
+	ip = L"192.168.137." + ip;
+	wcout << "Connecting to " << ip << "..." << endl;
+	sender.initConnection(ip);
+	wcout << "Successfully connected to " << ip << " !" << endl;
+	sender.sendData("Message=Connected to the computer !");
 	sendingNeeded = true;
 	currentState = 0;
 }
@@ -85,7 +85,6 @@ float initHand1x, initHand2x, initHand1y, initHand2y, initHand1z, initHand2z;
 Vector rotationAxis;
 int64_t referenceTimeStamp = 0;
 int64_t endReferenceTimeStamp = 0;
-
 
 void SampleListener::onFrame(const Controller& controller) {
 	// Get the most recent frame and report some basic information
@@ -126,13 +125,13 @@ void SampleListener::onFrame(const Controller& controller) {
 
 
 	bool handL = false, handR = false;
-
+	Vector meanDirectionFingers(0,0,0);
+	Vector thumbDirection (0, 0, 0);
 	HandList hands = frame.hands();
 	//std::cout << frame.hands().count() << std::endl;
 	int nbFingersFront = 0;
 	for (HandList::const_iterator hl = hands.begin(); hl != hands.end(); ++hl) {
-
-
+		
 		int comp = 0;
 		//	closedLeftFist = false;
 		//	closedRightFist = false;
@@ -143,18 +142,30 @@ void SampleListener::onFrame(const Controller& controller) {
 		//	<< ", palm position: " << hand.palmPosition() << std::endl;
 		ss_data << "&" << handType << "=" << hand.palmPosition().x << "/" << hand.palmPosition().y << "/" << hand.palmPosition().z;
 
+
+
+
+
+
 		if (hand.isLeft()) {
-			ss_data << "&lx=" << hand.palmPosition().x << "&ly=" << hand.palmPosition().y << "&lz" << hand.palmPosition().z;
+			ss_data << "&lx=" << hand.palmPosition().x << "&ly=" << hand.palmPosition().y << "&lz=" << hand.palmPosition().z;
+			ss_data << "&lHandDirectionx=" << hand.direction().x << "&lHandDirectiony=" << hand.direction().y << "&lHandDirectionz=" << hand.direction().z;
+			ss_data << "&lpalmNormalx=" << hand.palmNormal().x << "&lpalmNormaly=" << hand.palmNormal().y << "&lpalmNormalz=" << hand.palmNormal().z;
+			
 			handL = true;
 		}
 		else {
-			ss_data << "&rx=" << hand.palmPosition().x << "&ry=" << hand.palmPosition().y << "&rz" << hand.palmPosition().z;
+			ss_data << "&rx=" << hand.palmPosition().x << "&ry=" << hand.palmPosition().y << "&rz=" << hand.palmPosition().z;
+			ss_data << "&rHandDirectionx=" << hand.direction().x << "&rHandDirectiony=" << hand.direction().y << "&rHandDirectionz=" << hand.direction().z;
+			ss_data << "&rpalmNormalx=" << hand.palmNormal().x << "&rpalmNormaly=" << hand.palmNormal().y << "rlpalmNormalz=" << hand.palmNormal().z;
+
 			handR = true;
 		}
 
 		// Get the hand's normal vector and direction
 		const Vector normal = hand.palmNormal();
 		const Vector direction = hand.direction();
+		//cout << normal.dot(direction)<< endl;
 		//std::cout << normal << std::endl;
 		// Calculate the hand's pitch, roll, and yaw angles
 		/*std::cout << std::string(2, ' ') <<  "pitch: " << direction.pitch() * RAD_TO_DEG << " degrees, "
@@ -180,7 +191,11 @@ void SampleListener::onFrame(const Controller& controller) {
 			<< "mm, width: " << finger.width() << std::endl;*/
 
 			// Get finger bones
-
+			if (fingerNames[finger.type()] != "Thumb") {
+				meanDirectionFingers += finger.direction();
+			}
+			else
+				thumbDirection = finger.direction();
 			for (int b = 0; b < 4; ++b) {
 				Bone::Type boneType = static_cast<Bone::Type>(b);
 				Bone bone = finger.bone(boneType);
@@ -203,6 +218,8 @@ void SampleListener::onFrame(const Controller& controller) {
 			//	if (((fingerNames[finger.type()] != "Thumb") && (boneNames[boneType] == "Proximal") && (abs(bone.direction().dot(hand.palmNormal())) <= 0.5)))
 			//		nbFingersFront++;
 		//		cout << fingerNames[finger.type()] << "   " << (boneNames[boneType]) << "  " <<finger.direction() << endl;
+			
+				
 				if (((fingerNames[finger.type()] == "Index") && (boneNames[boneType] == "Proximal") && finger.direction().z < -0.8 ) ||
 					((fingerNames[finger.type()] != "Index") && (fingerNames[finger.type()] != "Thumb") && (boneNames[boneType] == "Proximal") && finger.direction().y < 0))
 					nbFingersFront++;
@@ -244,7 +261,7 @@ void SampleListener::onFrame(const Controller& controller) {
 				std::cout << std::string(6, ' ') <<  boneNames[boneType] << ", direction: " << bone.direction().y << std::endl; */
 			}
 		}
-
+		meanDirectionFingers = meanDirectionFingers / 4;
 		//	std::cout << handType << "   " << normal.y << "   " << hand.palmPosition().y << "  " << nbFingersFront << std::endl;
 
 		//if ((hand.isLeft() && (hand.palmNormal().x > 0.8 && hand.palmPosition().x < -70) && (nbFingersFront == 4))
@@ -295,12 +312,21 @@ void SampleListener::onFrame(const Controller& controller) {
 			closedLeftFist = true;
 			closedRightFist = true;
 		}
-
+		
 
 		comp = 0;
 		//	if (closedLeftFist && closedLeftFist)
 		//		std::cout << "Deux poings fermés." << std::endl;
+		if (hand.isLeft()) {
+			ss_data << "&lmeanDirectionFingersx=" << meanDirectionFingers.x << "&lmeanDirectionFingersy=" << meanDirectionFingers.y << "&lmeanDirectionFingersz=" << meanDirectionFingers.z;
+			ss_data << "&lthumbDirectionx=" << thumbDirection.x << "&lthumbDirectiony=" << thumbDirection.y << "&lthumbDirectionz=" << thumbDirection.z;
+		}
+		else {
+			ss_data << "&rmeanPositionFingersx=" << meanDirectionFingers.x << "&rmeanPositionFingersy=" << meanDirectionFingers.y << "&rmeanPositionFingersz=" << meanDirectionFingers.z;
+			ss_data << "&rthumbDirectionx=" << thumbDirection.x << "&rthumbDirectiony=" << thumbDirection.y << "&rthumbDirectionz=" << thumbDirection.z;
+		}
 
+		meanDirectionFingers = Vector(0, 0, 0);
 
 	}
 
@@ -368,7 +394,7 @@ void SampleListener::onFrame(const Controller& controller) {
 
 			distanceHands = initHand2.palmPosition().distanceTo(initHand1.palmPosition());
 			startFrame = frame;
-			cout << "MAISON SELECTIONNEE" << endl;
+			std::cout << "MAISON SELECTIONNEE" << endl;
 			currentState = GestureState::SelectionState;
 		}
 		break;
@@ -378,7 +404,7 @@ void SampleListener::onFrame(const Controller& controller) {
 		hand2 = hands.rightmost();
 	//	cout << "Je suis dans SelectMenu !  " << abs(hand1.fingers()[1].bone(boneTypeD).center().x - initHand1.fingers()[1].bone(boneTypeD).center().x) <<endl;
 		if (abs(hand1.fingers()[1].bone(boneTypeD).center().x - initHand1.fingers()[1].bone(boneTypeD).center().x) > 80) {
-			cout << "MENU SELECTIONNE !" << endl;
+			std::cout << "MENU SELECTIONNE !" << endl;
 			currentState = GestureState::DeselectMenu;
 	//		menuSelected = true;      
 		}
@@ -392,7 +418,7 @@ void SampleListener::onFrame(const Controller& controller) {
 		hand2 = hands.rightmost();
 		//	cout << "Je suis dans SelectMenu !  " << abs(hand1.fingers()[1].bone(boneTypeD).center().x - initHand1.fingers()[1].bone(boneTypeD).center().x) <<endl;
 		if (abs(hand1.fingers()[1].bone(boneTypeD).center().x - initHand1.fingers()[1].bone(boneTypeD).center().x) < 10) {
-			cout << "MENU DESELECTIONNE !" << endl;
+			std::cout << "MENU DESELECTIONNE !" << endl;
 		//	menuSelected = true;
 			displayMenu = false;
 			deselectFrame = frame;
@@ -450,7 +476,7 @@ void SampleListener::onFrame(const Controller& controller) {
 		else if ((abs(rotationOfHand1y * 180 / M_PI) > 20)
 			&& (rotationOfHand1y * 180 / M_PI - rotationOfHand2y * 180 / M_PI < 20) && (abs(hand1.palmPosition().z - hand2.palmPosition().z) >10)) {
 
-			cout << "rotation en Y !   " << rotationOfHand1y * 180 / M_PI << "  " << "rotation 2  " << rotationOfHand2y * 180 / M_PI << endl;
+			std::cout << "rotation en Y !   " << rotationOfHand1y * 180 / M_PI << "  " << "rotation 2  " << rotationOfHand2y * 180 / M_PI << endl;
 			currentState = GestureState::RotationState;
 			rotationAxis = Vector(0, 1, 0);
 		}
@@ -458,12 +484,12 @@ void SampleListener::onFrame(const Controller& controller) {
 		else if ((abs(rotationOfHand1z * 180 / M_PI)>30) && (abs(hand1.palmPosition().y - hand2.palmPosition().y) >10) 
 			&& !(abs(hand1.palmPosition().y - initHand1.palmPosition().y)<10) && !(abs(hand2.palmPosition().y - initHand2.palmPosition().y)<10)) {
 			
-			cout << "rotation en Z !   " << rotationOfHand1z * 180 / M_PI << "  " << "rotation 2  " << rotationOfHand2z * 180 / M_PI << endl;
+			std::cout << "rotation en Z !   " << rotationOfHand1z * 180 / M_PI << "  " << "rotation 2  " << rotationOfHand2z * 180 / M_PI << endl;
 			currentState = GestureState::RotationState;
 			rotationAxis = Vector(0, 0, 1);
 		}
 		else if ((abs(rotationOfHand1x * 180 / M_PI)>40) && (rotationOfHand1x * 180 / M_PI - rotationOfHand2x * 180 / M_PI < 20)) {
-			cout << "rotation en X !   " << rotationOfHand1x * 180 / M_PI << "  " << "rotation 2  " << rotationOfHand2x * 180 / M_PI << endl;
+			std::cout << "rotation en X !   " << rotationOfHand1x * 180 / M_PI << "  " << "rotation 2  " << rotationOfHand2x * 180 / M_PI << endl;
 			currentState = GestureState::RotationState;
 			rotationAxis = Vector(1, 0, 0);
 		}
@@ -502,7 +528,7 @@ void SampleListener::onFrame(const Controller& controller) {
 	}
 	case GestureState::EndTransformationState:
 	{
-		cout << "STATE = STOP" << endl;
+		std::cout << "STATE = STOP" << endl;
 		std::cout << "MAISON DESELECTIONNEE." << std::endl;
 		ss_data << "&state=unselect";
 		ss_data << "&loading=" << 0.0;
@@ -512,7 +538,7 @@ void SampleListener::onFrame(const Controller& controller) {
 	}
 	case GestureState::ZoomState:
 	{
-		cout << "STATE = ZOOM" << endl;
+		std::cout << "STATE = ZOOM" << endl;
 		ss_data << "&loading=" << 1.0 - (frame.timestamp() - endReferenceTimeStamp) / 2000000.0;
 		ss_data << "&state=zoom";
 
@@ -530,17 +556,17 @@ void SampleListener::onFrame(const Controller& controller) {
 			//cout << "HAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" << abs(hand1.palmPosition().x - initHand1.palmPosition().x) << "  -  " <<abs(hand2.palmPosition().x - initHand2.palmPosition().x) << endl;
 		//cout << " Y    = " << abs(hand1.palmPosition().x - hand2.palmPosition().x) << endl;
 		if ((abs(initHand1x - hand1.palmPosition().x) > 30) && (abs(initHand2x - hand2.palmPosition().x) > 30)) {
-			cout << "STATE = TRANSLATION EN X" << endl;
+			std::cout << "STATE = TRANSLATION EN X" << endl;
 			ss_data << "&x=1&y=0&z=0&param=" << initHand1x - hand1.palmPosition().x;
 		}
 		else if ((abs(initHand1y - hand1.palmPosition().y) > 30) && (abs(initHand2y - hand2.palmPosition().y) > 30)) {
-			cout << "STATE = TRANSLATION EN Y" << endl;
+			std::cout << "STATE = TRANSLATION EN Y" << endl;
 			// cout << "DAMN IT Y !!  " << abs(hand1.palmPosition().y - hand2.palmPosition().y) << endl;
 			ss_data << "&x=0&y=1&z=0&param=" << initHand1y - hand1.palmPosition().y;
 		}
 		else if ((abs(initHand1z - hand1.palmPosition().z) > 30) && (abs(initHand2z - hand2.palmPosition().z) > 30) && (abs(hand1.palmPosition().x - initHand1.palmPosition().x) < 20) && (abs(hand2.palmPosition().x - initHand2.palmPosition().x)<20))
 		{
-			cout << "STATE = TRANSLATION EN Z" << endl;
+			std::cout << "STATE = TRANSLATION EN Z" << endl;
 			//cout << " DAMN IT ! " << abs(hand1.palmPosition().y - hand2.palmPosition().y) << endl;
 			ss_data << "&x=0&y=0&z=1&param=" << initHand1z - hand1.palmPosition().z;
 		}
@@ -556,7 +582,7 @@ void SampleListener::onFrame(const Controller& controller) {
 		ss_data << "&loading=" << 1 - (frame.timestamp() - endReferenceTimeStamp) / 2000000.0;
 		//cout << abs(rotationOfHand1z * 180 / M_PI) << "      -     " << abs(rotationOfHand2z * 180 / M_PI) << endl;
 		//cout << hand1.palmPosition().distanceTo(initHand1.palmPosition()) << endl;
-		cout << "STATE = ROTATION" << endl;
+		std::cout << "STATE = ROTATION" << endl;
 		
 
 		if (deselection){ //unselect
@@ -565,13 +591,13 @@ void SampleListener::onFrame(const Controller& controller) {
 		float rotationOfHand1, rotationOfHand2;
 		rotationOfHand1 = hand1.rotationAngle(startFrame, rotationAxis);
 		rotationOfHand2 = hand2.rotationAngle(startFrame, rotationAxis);
-		cout << "Rotation : A" << rotationAxis << " G" << rotationOfHand1 * 180 / M_PI << " D" << rotationOfHand2 * 180 / M_PI << endl;
+		std::cout << "Rotation : A" << rotationAxis << " G" << rotationOfHand1 * 180 / M_PI << " D" << rotationOfHand2 * 180 / M_PI << endl;
 		ss_data << "&x=" << rotationAxis.x << "&y=" << rotationAxis.y << "&z="<<rotationAxis.z << "&param=" << rotationOfHand1 * 180 / M_PI;
 		break;
 	}
 	default:
 	{
-			   cout << "Cas non traité actuellement." << endl;
+		std::cout << "Cas non traité actuellement." << endl;
 	}
 	}
 
@@ -636,7 +662,7 @@ void SampleListener::onFrame(const Controller& controller) {
 		case Gesture::TYPE_KEY_TAP:
 		{
 									  KeyTapGesture tap = gesture;
-									 /* std::cout << std::string(2, ' ')
+									  /*std::cout << std::string(2, ' ')
 										  << "Key Tap id: " << gesture.id()
 										  << ", state: " << stateNames[gesture.state()]
 										  << ", position: " << tap.position()
@@ -646,11 +672,11 @@ void SampleListener::onFrame(const Controller& controller) {
 		case Gesture::TYPE_SCREEN_TAP:
 		{
 										 ScreenTapGesture screentap = gesture;
-									/*	 std::cout << std::string(2, ' ')
+										 std::cout << std::string(2, ' ')
 											 << "Screen Tap id: " << gesture.id()
 											 << ", state: " << stateNames[gesture.state()]
 											 << ", position: " << screentap.position()
-											 << ", direction: " << screentap.direction() << std::endl;*/
+											 << ", direction: " << screentap.direction() << std::endl;
 										 break;
 		}
 		default:
@@ -667,7 +693,7 @@ void SampleListener::onFrame(const Controller& controller) {
 	if (sendingNeeded) {
 		string data;
 		ss_data >> data;
-	//	sender.sendData(data);
+	sender.sendData(data);
 	}
 	sendingNeeded = !sendingNeeded;
 }
@@ -715,7 +741,7 @@ int main(int argc, char** argv) {
 	char key_pressed = 0;
 	while (key_pressed != escape) {
 		key_pressed = _getch();
-		cout << (int)key_pressed << endl;
+		std::cout << (int)key_pressed << endl;
 	}
 
 	// Remove the sample listener when done
