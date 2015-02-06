@@ -77,7 +77,7 @@ void SampleListener::onDisconnect(const Controller& controller) {
 void SampleListener::onExit(const Controller& controller) {
 	std::cout << "Exited" << std::endl;
 }
-int nbFrameCatch = 0, nbFrameUncatch = 0;
+int nbFrameCatch = 0, nbFrameUncatch = 0, nbFrameDeselect = 0;
 Hand initHand1, initHand2, hand1, hand2;
 Frame previousFrame, startFrame, secondFrame, startFrameMenu, deselectFrame;
 float rotationOfHand1x, rotationOfHand1y, rotationOfHand1z, rotationOfHand2x, rotationOfHand2y, rotationOfHand2z;
@@ -338,10 +338,18 @@ void SampleListener::onFrame(const Controller& controller) {
 	//menuSelected = false;
 
 
-
-	ss_data << "&handL=" << handL;
-	ss_data << "&handR=" << handR;
-
+	if (handL){
+		ss_data << "&handL=True";
+	}
+	else {
+		ss_data << "&handL=False";
+	}
+	if (handR){
+		ss_data << "&handR=True";
+	}
+	else {
+		ss_data << "&handR=False";
+	}
 
 	//if (!(frame.hands()[0].palmNormal().dot(frame.hands()[1].palmNormal()) < -0.8))
 	//	cout << "mains plus en face de l'autre" << endl;
@@ -464,6 +472,7 @@ void SampleListener::onFrame(const Controller& controller) {
 		//cout << "ROATION  EN Z    ----------------- " << abs(rotationOfHand1z * 180 / M_PI) << endl;
 
 		if (deselection){ //unselect
+			nbFrameDeselect = 0;
 			currentState = GestureState::EndTransformationState;
 		}
 	/*	else if (((abs(initHand1x - hand1.palmPosition().x) > 50) && (abs(initHand2x - hand2.palmPosition().x) > 50))
@@ -537,8 +546,10 @@ void SampleListener::onFrame(const Controller& controller) {
 		std::cout << "MAISON DESELECTIONNEE." << std::endl;
 		ss_data << "&state=unselect";
 		ss_data << "&loading=" << 0.0;
-
-		currentState = GestureState::WaitState;
+		nbFrameDeselect++;
+		if (nbFrameDeselect > 4) {
+			currentState = GestureState::WaitState;
+		}
 		break;
 	}
 	case GestureState::ZoomState:
@@ -550,6 +561,7 @@ void SampleListener::onFrame(const Controller& controller) {
 
 
 		if (deselection){ //unselect
+			nbFrameDeselect = 0;
 			currentState = GestureState::EndTransformationState;
 		}
 
@@ -579,6 +591,7 @@ void SampleListener::onFrame(const Controller& controller) {
 		}
 		
 		if (deselection){ //unselect
+			nbFrameDeselect = 0;
 			currentState = GestureState::EndTransformationState;
 		}
 		break;
@@ -593,6 +606,7 @@ void SampleListener::onFrame(const Controller& controller) {
 		
 
 		if (deselection){ //unselect
+			nbFrameDeselect = 0;
 			currentState = GestureState::EndTransformationState;
 		}
 		float rotationOfHand1, rotationOfHand2;
